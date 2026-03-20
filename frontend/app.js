@@ -402,6 +402,11 @@ function escHtml(str) {
 // Init
 // ──────────────────────────────────────
 (function init() {
+  // Automatically use the host URL in production, instead of localhost
+  if (window.location.protocol !== 'file:') {
+    dom.serverUrl.value = window.location.origin;
+  }
+  
   checkServer();
   // Re-check server health every 30 seconds
   setInterval(checkServer, 30_000);
