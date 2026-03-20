@@ -71,6 +71,8 @@ const dom = {
   errorToast:     $('errorToast'),
   errorMsg:       $('errorMsg'),
   errorClose:     $('errorClose'),
+
+  downloadTicket: $('downloadTicket'),
 };
 
 // ──────────────────────────────────────
@@ -185,8 +187,20 @@ dom.form.addEventListener('submit', async (e) => {
   if (dom.location.value.trim()) {
     formData.append('location', dom.location.value.trim());
   }
+
   if (state.selectedFile) {
-    formData.append('image', state.selectedFile, state.selectedFile.name);
+    // Efficiency: Compress image if it's large (> 1MB)
+    if (state.selectedFile.size > 1024 * 1024) {
+      try {
+        const compressedFile = await compressImage(state.selectedFile);
+        formData.append('image', compressedFile, state.selectedFile.name);
+      } catch (err) {
+        console.error("Compression failed, sending original:", err);
+        formData.append('image', state.selectedFile, state.selectedFile.name);
+      }
+    } else {
+      formData.append('image', state.selectedFile, state.selectedFile.name);
+    }
   }
 
   const base = dom.serverUrl.value.trim().replace(/\/$/, '');
@@ -213,6 +227,22 @@ dom.form.addEventListener('submit', async (e) => {
   } finally {
     setLoading(false);
   }
+});
+
+// ──────────────────────────────────────
+// Export / Download
+// ──────────────────────────────────────
+dom.downloadTicket.addEventListener('click', () => {
+  const currentTicket = state.tickets[0];
+  if (!currentTicket) return;
+
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentTicket, null, 2));
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href",     dataStr);
+  downloadAnchorNode.setAttribute("download", `civic_ticket_${currentTicket.ticket_id}.json`);
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
 });
 
 // ──────────────────────────────────────
@@ -378,3 +408,42 @@ function escHtml(str) {
   // Re-check when server URL changes
   dom.serverUrl.addEventListener('change', checkServer);
 })();
+
+// ──────────────────────────────────────
+// Efficiency — Image Compression
+// ──────────────────────────────────────
+async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          } else {
+            reject(new Error("Canvas blob creation failed"));
+          }
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}

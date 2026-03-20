@@ -14,15 +14,30 @@ from typing import Optional
 
 import google.generativeai as genai
 from dotenv import load_dotenv
+from google.cloud import secretmanager
 
 load_dotenv()
+
+def get_secret(secret_id: str, project_id: Optional[str] = None) -> Optional[str]:
+    """Retrieves a secret from Google Cloud Secret Manager if available."""
+    if not project_id:
+        return os.getenv(secret_id)
+    try:
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+        response = client.access_secret_version(request={"name": name})
+        return response.payload.data.decode("UTF-8")
+    except Exception:
+        return os.getenv(secret_id)
 
 # ──────────────────────────────────────────────
 # Gemini Configuration
 # ──────────────────────────────────────────────
-API_KEY = os.getenv("GEMINI_API_KEY")
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
+API_KEY = get_secret("GEMINI_API_KEY", PROJECT_ID)
+
 if not API_KEY:
-    raise EnvironmentError("GEMINI_API_KEY not found. Check your .env file.")
+    raise EnvironmentError("GEMINI_API_KEY not found in environment or Secret Manager.")
 
 genai.configure(api_key=API_KEY)
 

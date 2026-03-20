@@ -10,10 +10,13 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 try:
     from backend.gemini_bridge import analyze_civic_complaint
@@ -21,20 +24,23 @@ except ImportError:
     from gemini_bridge import analyze_civic_complaint
 
 # ──────────────────────────────────────────────
-# App Setup
+# App Setup & Security
 # ──────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="CivicBridge AI",
     description="Converts messy citizen complaints into structured government dispatch tickets using Gemini AI.",
     version="1.0.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Allow requests from local file:// and localhost frontends
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -63,7 +69,9 @@ def health_check():
 
 
 @app.post("/api/submit-complaint", tags=["Complaints"])
+@limiter.limit("10/minute")
 async def submit_complaint(
+    request: Request,
     description: str = Form(..., description="Citizen's complaint in any language or style"),
     location: Optional[str] = Form(default=None, description="Optional location hint"),
     image: Optional[UploadFile] = File(default=None, description="Optional photo of the issue"),
