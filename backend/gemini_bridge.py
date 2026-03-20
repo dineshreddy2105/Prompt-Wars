@@ -16,7 +16,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from google.cloud import secretmanager
 
-load_dotenv()
+load_dotenv(override=True)
 
 def get_secret(secret_id: str, project_id: Optional[str] = None) -> Optional[str]:
     """Retrieves a secret from Google Cloud Secret Manager if available."""
@@ -98,7 +98,7 @@ OUTPUT FORMAT — YOU MUST OUTPUT ONLY VALID JSON, NO EXTRA TEXT:
 }
 
 CRITICAL RULES:
-- If the user is angry or uses slang, translate it into professional Government-speak.
+- TRANSLATION GUARANTEE: If the user writes in Spanish, slang, or any non-English language, the citizen_feedback MUST be in their language, but the official_report MUST be in professional English.
 - If the photo doesn't match the description, set verification_status to "Verification_Failed".
 - Be precise: If a pipe is "leaking", use the image to estimate if it's a "slow drip" or "active flooding".
 - If input is unclear, do NOT fail. Provide your best guess and set confidence_level to "Low".
@@ -114,6 +114,7 @@ def analyze_civic_complaint(
     location: Optional[str] = None,
     image_bytes: Optional[bytes] = None,
     image_mime_type: Optional[str] = "image/jpeg",
+    gcs_url: Optional[str] = None
 ) -> dict:
     """
     Sends complaint text + optional image to Gemini 1.5 Flash.
@@ -130,9 +131,10 @@ def analyze_civic_complaint(
 
     # Build the user prompt
     location_context = f"\nLocation hint from user: {location}" if location else ""
+    attachment_context = f"\nImage backed up to GCS: {gcs_url}" if gcs_url else ""
     user_prompt = (
         f"Citizen complaint: {description}"
-        f"{location_context}\n\n"
+        f"{location_context}{attachment_context}\n\n"
         "Analyze this complaint and any attached photo. "
         "Produce the complete JSON civic dispatch ticket."
     )
