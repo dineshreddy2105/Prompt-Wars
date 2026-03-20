@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CivicBridge AI — Urban Complaint Dispatch System</title>
+  <meta name="description" content="AI-powered civic complaint system that converts citizen reports into structured government dispatch tickets." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ══ HEADER ══ -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🏛️</div>
+        <div class="logo-text">Civic<span>Bridge</span> AI</div>
+      </div>
+      <div class="header-status">
+        <div class="status-dot" id="serverStatusDot"></div>
+        <span id="serverStatusText">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ MAIN LAYOUT ══ -->
+  <main class="main">
+
+    <!-- ══ LEFT: INPUT PANEL ══ -->
+    <section class="panel input-panel" aria-label="Submit Complaint">
+      <div class="panel-header">
+        <div class="panel-icon">📝</div>
+        <h2>Submit Complaint</h2>
+      </div>
+      <div class="panel-body">
+        <!-- Server URL -->
+        <div class="server-url-row">
+          <label for="serverUrl">API:</label>
+          <input type="text" id="serverUrl" value="http://localhost:8000" />
+        </div>
+
+        <form id="complaintForm" novalidate>
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label" for="description">Complaint Description</label>
+            <textarea
+              id="description"
+              class="form-control"
+              placeholder="Describe the issue in any language or style… e.g. 'yo the water pipe on main st is literally exploding bro'"
+              required
+            ></textarea>
+          </div>
+
+          <!-- Location -->
+          <div class="form-group">
+            <label class="form-label" for="location">Location Hint (optional)</label>
+            <input
+              type="text"
+              id="location"
+              class="form-control"
+              placeholder="e.g. Near Lincoln Elementary, Main Street"
+            />
+          </div>
+
+          <!-- Image Upload -->
+          <div class="form-group">
+            <label class="form-label">Photo Evidence (optional)</label>
+            <div class="drop-zone" id="dropZone">
+              <input type="file" id="imageInput" accept="image/*" aria-label="Upload photo" />
+              <div class="drop-icon">📷</div>
+              <div class="drop-text">
+                <strong>Click to upload</strong> or drag &amp; drop<br/>
+                JPG, PNG, WEBP — Max 10 MB
+              </div>
+            </div>
+            <div class="image-preview-container" id="previewContainer">
+              <img class="image-preview" id="imagePreview" src="" alt="Preview" />
+              <button type="button" class="preview-remove" id="removeImage">
+                ✕ Remove image
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="btn-submit" id="submitBtn">
+            <div class="spinner"></div>
+            <span class="btn-text">🚀 Analyze &amp; Dispatch</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ══ CENTER: DISPATCH TICKET ══ -->
+    <section class="panel ticket-panel" aria-label="Dispatch Ticket" aria-live="polite">
+      <div class="panel-header">
+        <div class="panel-icon">🎫</div>
+        <h2>Dispatch Ticket</h2>
+      </div>
+      <div class="panel-body">
+
+        <!-- Placeholder -->
+        <div class="ticket-placeholder" id="ticketPlaceholder">
+          <div class="ph-icon">🏛️</div>
+          <p>Submit a civic complaint to see the<br/>AI-generated dispatch ticket here.</p>
+        </div>
+
+        <!-- Skeleton Loader -->
+        <div id="ticketSkeleton" style="display:none;">
+          <div class="skeleton h-20 w-60" style="margin-bottom:16px;"></div>
+          <div class="skeleton w-80"></div>
+          <div class="skeleton w-60"></div>
+          <div class="skeleton h-40" style="margin-top:16px;"></div>
+          <div class="skeleton w-80" style="margin-top:16px;"></div>
+          <div class="skeleton w-60"></div>
+          <div class="skeleton h-40" style="margin-top:16px;"></div>
+        </div>
+
+        <!-- Ticket Card -->
+        <div class="ticket-card" id="ticketCard">
+
+          <!-- Header -->
+          <div class="ticket-header">
+            <div>
+              <div class="ticket-id" id="ticketId">—</div>
+              <div class="ticket-subject" id="ticketSubject">—</div>
+            </div>
+            <div class="status-badges">
+              <span class="badge-priority" id="ticketPriority">—</span>
+              <span class="badge-verify" id="ticketVerify">—</span>
+            </div>
+          </div>
+
+          <!-- Info Grid -->
+          <div class="section-title">Ticket Metadata</div>
+          <div class="info-grid" style="margin-bottom:20px;">
+            <div class="info-chip">
+              <div class="label">Category</div>
+              <div class="value" id="metaCategory">—</div>
+            </div>
+            <div class="info-chip dept-chip">
+              <div class="label">Department</div>
+              <div class="value" id="metaDept">—</div>
+            </div>
+            <div class="info-chip">
+              <div class="label">Complexity</div>
+              <div class="value" id="metaComplexity">—</div>
+              <div class="complexity-bar-wrap" id="complexityBars">
+                <div class="complexity-bar" id="cb1"></div>
+                <div class="complexity-bar" id="cb2"></div>
+                <div class="complexity-bar" id="cb3"></div>
+              </div>
+            </div>
+            <div class="info-chip">
+              <div class="label">Confidence</div>
+              <div class="value" id="metaConfidence">—</div>
+              <div class="conf-bar" style="margin-top:6px;">
+                <div class="conf-fill" id="confFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Official Report -->
+          <div class="section-title">Official Report</div>
+          <div class="text-block">
+            <div class="block-label">Formalized Description</div>
+            <div class="block-text" id="reportDescription">—</div>
+          </div>
+          <div class="text-block">
+            <div class="block-label">Visual Evidence</div>
+            <div class="block-text" id="reportVisual">—</div>
+          </div>
+          <div class="hazard-block" id="hazardBlock">
+            <div class="hz-icon">⚠️</div>
+            <div class="hz-text" id="reportHazard">—</div>
+          </div>
+
+          <!-- Citizen Feedback -->
+          <div class="section-title">Citizen Feedback</div>
+          <div class="citizen-block">
+            <div class="cb-title">📣 Message for you</div>
+            <div class="cb-message" id="citizenMessage">—</div>
+            <div class="cb-next" id="citizenNext">—</div>
+          </div>
+
+          <!-- Confidence row -->
+          <div class="confidence-row">
+            <span>AI Confidence</span>
+          </div>
+
+        </div><!-- /ticket-card -->
+      </div>
+    </section>
+
+    <!-- ══ RIGHT: LIVE DASHBOARD ══ -->
+    <section class="panel dashboard-panel" aria-label="Live Dispatch Dashboard">
+      <div class="panel-header">
+        <div class="panel-icon">📡</div>
+        <h2>Live Dashboard</h2>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statCritical" style="color:var(--p5);">0</div>
+          <div class="stat-label">Critical</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statVerified" style="color:var(--verified);">0</div>
+          <div class="stat-label">Verified</div>
+        </div>
+      </div>
+
+      <!-- Entries -->
+      <div class="panel-body" id="dashboardBody">
+        <div class="dashboard-empty" id="dashboardEmpty">
+          <div class="de-icon">📡</div>
+          <p>No complaints yet.<br/>Submit one to see it appear here.</p>
+        </div>
+      </div>
+
+      <!-- Priority legend -->
+      <div class="priority-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--p1);"></div>P1 Low</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--p2);"></div>P2 Minor</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--p3);"></div>P3 Moderate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--p4);"></div>P4 Serious</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--p5);"></div>P5 Critical</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Error Toast -->
+  <div class="error-toast" id="errorToast" style="display:none;">
+    <div class="et-icon">⛔</div>
+    <div class="et-msg" id="errorMsg">An error occurred.</div>
+    <div class="et-close" id="errorClose" role="button" aria-label="Close error">✕</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

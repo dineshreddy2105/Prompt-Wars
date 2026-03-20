@@ -1,0 +1,16 @@
+# Exclude from Docker build context
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.DS_Store
+.env
+.venv
+env/
+venv/
+.gemini/
+brain/
+node_modules/
