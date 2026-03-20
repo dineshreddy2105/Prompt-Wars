@@ -15,7 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from gemini_bridge import analyze_civic_complaint
+try:
+    from backend.gemini_bridge import analyze_civic_complaint
+except ImportError:
+    from gemini_bridge import analyze_civic_complaint
 
 # ──────────────────────────────────────────────
 # App Setup

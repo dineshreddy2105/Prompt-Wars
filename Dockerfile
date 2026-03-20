@@ -10,10 +10,12 @@ ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . ./
 
+# Set the PYTHONPATH so the app can find modules in the backend directory
+ENV PYTHONPATH="${PYTHONPATH}:${APP_HOME}:${APP_HOME}/backend"
+
 # Install production dependencies.
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Run the web service on container startup. Here we use the uvicorn
-# webserver, with the main app object.
-# Port 8080 is the default for Cloud Run.
-CMD exec python -m uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Run the web service on container startup.
+# We use sh -c to allow environment variable expansion of $PORT.
+CMD ["sh", "-c", "python -m uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
