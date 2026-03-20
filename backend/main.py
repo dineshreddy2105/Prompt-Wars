@@ -32,6 +32,15 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("CivicBridge.API")
 
+if os.getenv("GOOGLE_CLOUD_PROJECT"):
+    try:
+        import google.cloud.logging
+        client = google.cloud.logging.Client()
+        client.setup_logging()
+        logger.info("Google Cloud Logging integrated successfully.")
+    except Exception as e:
+        logger.warning(f"Could not initialize Google Cloud Logging: {e}")
+
 # ──────────────────────────────────────────────
 # App Setup & Security
 # ──────────────────────────────────────────────

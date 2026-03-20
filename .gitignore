@@ -1,0 +1,7 @@
+# Environment variables
+.env
+backend/.env
+
+# Python compilation files
+__pycache__/
+*.pyc
